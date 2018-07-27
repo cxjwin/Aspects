@@ -7,19 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		34B986851B1DE2BE00DE719D /* Aspects.m in Sources */ = {isa = PBXBuildFile; fileRef = 34B986841B1DE2BE00DE719D /* Aspects.m */; };
+		2A52CB8D20EF07CB0005B9DC /* Aspects.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A52CB8C20EF07CB0005B9DC /* Aspects.m */; };
+		2A52CB8E20EF07CB0005B9DC /* Aspects.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A52CB8C20EF07CB0005B9DC /* Aspects.m */; };
+		2A52CB8F20EF07CB0005B9DC /* Aspects.m in Sources */ = {isa = PBXBuildFile; fileRef = 2A52CB8C20EF07CB0005B9DC /* Aspects.m */; };
 		34B986861B1DE2E300DE719D /* Aspects.h in Headers */ = {isa = PBXBuildFile; fileRef = 34B9866C1B1DE0CE00DE719D /* Aspects.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		34B986A51B1E491000DE719D /* Aspects.m in Sources */ = {isa = PBXBuildFile; fileRef = 34B986841B1DE2BE00DE719D /* Aspects.m */; };
 		34B986A61B1E491300DE719D /* Aspects.h in Headers */ = {isa = PBXBuildFile; fileRef = 34B9866C1B1DE0CE00DE719D /* Aspects.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		7376F8CD1B8EA767009CAB74 /* Aspects.h in Headers */ = {isa = PBXBuildFile; fileRef = 34B9866C1B1DE0CE00DE719D /* Aspects.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		7376F8D61B8EB1FA009CAB74 /* Aspects.m in Sources */ = {isa = PBXBuildFile; fileRef = 34B986841B1DE2BE00DE719D /* Aspects.m */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2A52CB8C20EF07CB0005B9DC /* Aspects.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Aspects.m; sourceTree = "<group>"; };
 		34B986671B1DE0CE00DE719D /* Aspects.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Aspects.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		34B9866B1B1DE0CE00DE719D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		34B9866C1B1DE0CE00DE719D /* Aspects.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Aspects.h; sourceTree = "<group>"; };
-		34B986841B1DE2BE00DE719D /* Aspects.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Aspects.m; sourceTree = "<group>"; };
 		34B9868C1B1E48CD00DE719D /* Aspects.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Aspects.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		7376F8C31B8EA670009CAB74 /* Aspects.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Aspects.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		7376F8C71B8EA670009CAB74 /* Info-watch.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-watch.plist"; sourceTree = "<group>"; };
@@ -72,7 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				34B9866C1B1DE0CE00DE719D /* Aspects.h */,
-				34B986841B1DE2BE00DE719D /* Aspects.m */,
+				2A52CB8C20EF07CB0005B9DC /* Aspects.m */,
 				34B9866A1B1DE0CE00DE719D /* Supporting Files */,
 			);
 			name = Aspects;
@@ -239,7 +239,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				34B986851B1DE2BE00DE719D /* Aspects.m in Sources */,
+				2A52CB8D20EF07CB0005B9DC /* Aspects.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,7 +247,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				34B986A51B1E491000DE719D /* Aspects.m in Sources */,
+				2A52CB8E20EF07CB0005B9DC /* Aspects.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -255,7 +255,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7376F8D61B8EB1FA009CAB74 /* Aspects.m in Sources */,
+				2A52CB8F20EF07CB0005B9DC /* Aspects.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

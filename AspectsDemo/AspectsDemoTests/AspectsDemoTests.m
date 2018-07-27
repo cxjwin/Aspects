@@ -17,6 +17,8 @@
 - (void)testCallAndExecuteBlock:(dispatch_block_t)block;
 - (double)callReturnsDouble;
 - (long long)callReturnsLongLong;
+- (id)testCallArg1:(id)arg1 arg2:(int)arg2 arg3:(BOOL)arg3;
+- (id)callReturnsObject:(id)obj;
 @end
 
 @implementation TestClass
@@ -38,7 +40,19 @@
 }
 
 - (long long)callReturnsLongLong {
-    return 99;
+    return 1;
+}
+
+- (id)testCallArg1:(id)arg1 arg2:(int)arg2 arg3:(BOOL)arg3 {
+    NSLog(@"===> %@", arg1);
+    NSLog(@"===> %d", arg2);
+    NSLog(@"===> %d", arg3);
+    
+    return @"hello";
+}
+
+- (id)callReturnsObject:(id)obj {
+    return obj;
 }
 
 @end
@@ -296,6 +310,8 @@
 - (void)testDoubleReturn {
     TestClass *testClass = [TestClass new];
     double d1 = [testClass callReturnsDouble];
+    
+    
     __block BOOL testCallCalled = NO;
     id aspect = [testClass aspect_hookSelector:@selector(callReturnsDouble) withOptions:AspectPositionAfter usingBlock:^(id<AspectInfo> info) {
         testCallCalled = YES;
@@ -338,6 +354,34 @@
     XCTAssertTrue([aspect remove], @"Must be able to deregister");
 }
 
+- (void)testObjectReturn {
+    TestClass *testClass = [TestClass new];
+    id o1 = [testClass callReturnsObject:@"hello world"];
+    __block BOOL testCallCalled = NO;
+    id aspect = [testClass aspect_hookSelector:@selector(callReturnsObject:) withOptions:AspectPositionAfter usingBlock:^(id<AspectInfo> info) {
+        testCallCalled = YES;
+    } error:NULL];
+    id o2 = [testClass callReturnsObject:@"hello world"];
+    
+    XCTAssertEqual(o1, o2, @"Must be equal");
+    XCTAssertTrue(testCallCalled, @"Must call hook");
+    XCTAssertTrue([aspect remove], @"Must be able to deregister");
+}
+
+- (void)testCallArgs {
+    TestClass *testClass = [TestClass new];
+    id o1 = [testClass testCallArg1:@"world" arg2:200 arg3:YES];
+    __block BOOL testCallCalled = NO;
+    id aspect = [testClass aspect_hookSelector:@selector(testCallArg1:arg2:arg3:) withOptions:AspectPositionAfter usingBlock:^(id<AspectInfo> info) {
+        testCallCalled = YES;
+    } error:NULL];
+    id o2 = [testClass testCallArg1:@"world" arg2:200 arg3:YES];
+    
+    XCTAssertEqual(o1, o2, @"Must be equal");
+    XCTAssertTrue(testCallCalled, @"Must call hook");
+    XCTAssertTrue([aspect remove], @"Must be able to deregister");
+}
+
 - (void)testHookReleaseIsNotAllowed {
     TestClass *testClass = [TestClass new];
 
@@ -365,7 +409,7 @@
     } error:NULL];
     XCTAssertNotNil(aspectToken, @"Must return a token.");
 
-    testClass = nil;
+//    testClass = nil;
     XCTAssertTrue(testCallCalled, @"Dealloc-hook must work.");
 }
 

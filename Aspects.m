@@ -9,6 +9,245 @@
 #import <libkern/OSAtomic.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
+#import <UIKit/UIKit.h>
+
+static void __ASPECTS_ARE_BEING_CALLED__(__unsafe_unretained NSObject *self, SEL selector, NSInvocation *invocation);
+
+static inline void set_argument(NSInvocation *inv, va_list a_list, int index) {
+#define WRAP_AND_SET(type, type2) \
+do { \
+    type val = (type)va_arg(a_list, type2); \
+    [inv setArgument:&val atIndex:index]; \
+} while (0)
+    
+    const char *argType = [inv.methodSignature getArgumentTypeAtIndex:index];
+    
+    // Skip const type qualifier.
+    if (argType[0] == 'r') {
+        argType++;
+    }
+    
+    if (strcmp(argType, @encode(id)) == 0 || strcmp(argType, @encode(Class)) == 0) {
+        WRAP_AND_SET(id, id);
+    } else if (strcmp(argType, @encode(char)) == 0) {
+        WRAP_AND_SET(char, int);
+    } else if (strcmp(argType, @encode(int)) == 0) {
+        WRAP_AND_SET(int, int);
+    } else if (strcmp(argType, @encode(short)) == 0) {
+        WRAP_AND_SET(short, int);
+    } else if (strcmp(argType, @encode(long)) == 0) {
+        WRAP_AND_SET(long, long);
+    } else if (strcmp(argType, @encode(long long)) == 0) {
+        WRAP_AND_SET(long long, long long);
+    } else if (strcmp(argType, @encode(unsigned char)) == 0) {
+        WRAP_AND_SET(unsigned char, int);
+    } else if (strcmp(argType, @encode(unsigned int)) == 0) {
+        WRAP_AND_SET(unsigned int, unsigned int);
+    } else if (strcmp(argType, @encode(unsigned short)) == 0) {
+        WRAP_AND_SET(unsigned short, int);
+    } else if (strcmp(argType, @encode(unsigned long)) == 0) {
+        WRAP_AND_SET(unsigned long, unsigned long);
+    } else if (strcmp(argType, @encode(unsigned long long)) == 0) {
+        WRAP_AND_SET(unsigned long long, unsigned long long);
+    } else if (strcmp(argType, @encode(float)) == 0) {
+        WRAP_AND_SET(float, double);
+    } else if (strcmp(argType, @encode(double)) == 0) {
+        WRAP_AND_SET(double, double);
+    } else if (strcmp(argType, @encode(BOOL)) == 0) {
+        WRAP_AND_SET(BOOL, int);
+    } else if (strcmp(argType, @encode(char *)) == 0) {
+        WRAP_AND_SET(char *, char *);
+    } else if (strcmp(argType, @encode(void (^)(void))) == 0) {
+        WRAP_AND_SET(id, id);
+    } else {
+        WRAP_AND_SET(NSValue *, NSValue *);
+    }
+    
+#undef WRAP_AND_SET
+}
+
+#define __MOCK_OBJC_MSG_FORWARD_BODY__ \
+do { \
+    Class klass = [_self class]; \
+    Method method = class_getInstanceMethod(klass, op); \
+    const char *types = method_getTypeEncoding(method); \
+    NSMethodSignature *sig = [NSMethodSignature signatureWithObjCTypes:types]; \
+    inv = [NSInvocation invocationWithMethodSignature:sig]; \
+    inv.target = _self; \
+    inv.selector = op; \
+    if (sig.numberOfArguments > 2) { \
+        va_list a_list; \
+        va_start(a_list, op); \
+        for (int i = 2; i < sig.numberOfArguments; i++) { \
+            set_argument(inv, a_list, i); \
+        } \
+        va_end (a_list); \
+    } \
+    __ASPECTS_ARE_BEING_CALLED__(_self, op, inv); \
+} while (0)
+
+#define __MAKE_MOCK_FUNC__(type, suffix) \
+static type aspects_objc_msgHandler##suffix (id _self, SEL op, ...) { \
+    NSInvocation *inv = nil; \
+    __MOCK_OBJC_MSG_FORWARD_BODY__; \
+    type val; \
+    [inv getReturnValue:&val]; \
+    return val; \
+}
+
+// return void function
+static void aspects_objc_msgHandlerV(id _Nullable _self, SEL op, ...) {
+    NSInvocation *inv = nil;
+    __MOCK_OBJC_MSG_FORWARD_BODY__;
+}
+
+// return not void value function
+__MAKE_MOCK_FUNC__(id, 0)
+__MAKE_MOCK_FUNC__(char, 1)
+__MAKE_MOCK_FUNC__(unsigned char, 2)
+__MAKE_MOCK_FUNC__(short, 3)
+__MAKE_MOCK_FUNC__(unsigned short, 4)
+__MAKE_MOCK_FUNC__(int, 5)
+__MAKE_MOCK_FUNC__(unsigned int, 6)
+__MAKE_MOCK_FUNC__(long, 7)
+__MAKE_MOCK_FUNC__(unsigned long, 8)
+__MAKE_MOCK_FUNC__(long long, 9)
+__MAKE_MOCK_FUNC__(unsigned long long, 10)
+__MAKE_MOCK_FUNC__(float, 11)
+__MAKE_MOCK_FUNC__(double, 12)
+__MAKE_MOCK_FUNC__(BOOL, 13)
+
+// return struct value function
+__MAKE_MOCK_FUNC__(CGRect, 14)
+__MAKE_MOCK_FUNC__(CGSize, 15)
+__MAKE_MOCK_FUNC__(CGPoint, 16)
+__MAKE_MOCK_FUNC__(NSRange, 17)
+
+
+IMP aspects_lookupMethod(id receiver, SEL sel);
+IMP aspects_lookupMethod(id receiver, SEL sel) {
+    
+#define AS_IMP(N) (IMP)aspects_objc_msgHandler##N
+#define AS_CMP(N, M) (strcmp(N, @encode(M)) == 0)
+    
+    IMP ret = NULL;
+    
+    Method method = class_getInstanceMethod([receiver class], sel);
+    char *returnType = method_copyReturnType(method);
+    
+    if (AS_CMP(returnType, id) ||
+        AS_CMP(returnType, Class) ||
+        AS_CMP(returnType, void(^)(void))) {
+        ret = AS_IMP(0);
+    }
+    else if (AS_CMP(returnType, char)) {
+        ret = AS_IMP(1);
+    }
+    else if (AS_CMP(returnType, unsigned char)) {
+        ret = AS_IMP(2);
+    }
+    else if (AS_CMP(returnType, short)) {
+        ret = AS_IMP(3);
+    }
+    else if (AS_CMP(returnType, unsigned short)) {
+        ret = AS_IMP(4);
+    }
+    else if (AS_CMP(returnType, int)) {
+        ret = AS_IMP(5);
+    }
+    else if (AS_CMP(returnType, unsigned int)) {
+        ret = AS_IMP(6);
+    }
+    else if (AS_CMP(returnType, long)) {
+        ret = AS_IMP(7);
+    }
+    else if (AS_CMP(returnType, unsigned long)) {
+        ret = AS_IMP(8);
+    }
+    else if (AS_CMP(returnType, long long)) {
+        ret = AS_IMP(9);
+    }
+    else if (AS_CMP(returnType, unsigned long long)) {
+        ret = AS_IMP(10);
+    }
+    else if (AS_CMP(returnType, float)) {
+        ret = AS_IMP(11);
+    }
+    else if (AS_CMP(returnType, double)) {
+        ret = AS_IMP(12);
+    }
+    else if (AS_CMP(returnType, BOOL)) {
+        ret = AS_IMP(13);
+    }
+    else if (AS_CMP(returnType, CGRect)) {
+        ret = AS_IMP(14);
+    }
+    else if (AS_CMP(returnType, CGSize)) {
+        ret = AS_IMP(15);
+    }
+    else if (AS_CMP(returnType, CGPoint)) {
+        ret = AS_IMP(16);
+    }
+    else if (AS_CMP(returnType, NSRange)) {
+        ret = AS_IMP(17);
+    }
+    else {
+        ret = AS_IMP(V);
+    }
+    
+    free(returnType);
+    
+    return (IMP)ret;
+}
+
+void aspects_objc_msgHandler(void);
+
+__attribute__((naked))
+void aspects_objc_msgHandler() {
+    __asm__(
+            "push   %%rbp \n"
+            "mov    %%rsp, %%rbp \n"
+            "sub    $0x80+8,  %%rsp \n"
+            "movdqa    %%xmm0, -0x80(%%rbp) \n"
+            "push    %%rax \n"
+            "movdqa    %%xmm1, -0x70(%%rbp) \n"
+            "push    %%rdi \n"
+            "movdqa    %%xmm2, -0x60(%%rbp) \n"
+            "push    %%rsi \n"
+            "movdqa    %%xmm3, -0x50(%%rbp) \n"
+            "push    %%rdx \n"
+            "movdqa    %%xmm4, -0x40(%%rbp) \n"
+            "push    %%rcx \n"
+            "movdqa    %%xmm5, -0x30(%%rbp) \n"
+            "push    %%r8 \n"
+            "movdqa    %%xmm6, -0x20(%%rbp) \n"
+            "push    %%r9 \n"
+            "movdqa    %%xmm7, -0x10(%%rbp) \n"
+            "call    _aspects_lookupMethod \n"
+            "movq    %%rax, %%r11 \n"
+            "movdqa    -0x80(%%rbp), %%xmm0 \n"
+            "pop    %%r9 \n"
+            "movdqa    -0x70(%%rbp), %%xmm1 \n"
+            "pop    %%r8 \n"
+            "movdqa    -0x60(%%rbp), %%xmm2 \n"
+            "pop    %%rcx \n"
+            "movdqa    -0x50(%%rbp), %%xmm3 \n"
+            "pop    %%rdx \n"
+            "movdqa    -0x40(%%rbp), %%xmm4 \n"
+            "pop    %%rsi \n"
+            "movdqa    -0x30(%%rbp), %%xmm5 \n"
+            "pop    %%rdi \n"
+            "movdqa    -0x20(%%rbp), %%xmm6 \n"
+            "pop    %%rax \n"
+            "movdqa    -0x10(%%rbp), %%xmm7 \n"
+            "cmp    %%r11, %%r11 \n"
+            "leave \n"
+            "jmp    *%%r11 \n"
+            :
+            :
+            :);
+}
+
 
 #define AspectLog(...)
 //#define AspectLog(...) do { NSLog(__VA_ARGS__); }while(0)
@@ -114,7 +353,7 @@ static NSString *const AspectsMessagePrefix = @"aspects_";
 ///////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark - Private Helper
 
-static id aspect_add(id self, SEL selector, AspectOptions options, id block, NSError **error) {
+static id aspect_add(id self, SEL selector, AspectOptions options, id block, NSError * __autoreleasing *error) {
     NSCParameterAssert(self);
     NSCParameterAssert(selector);
     NSCParameterAssert(block);
@@ -232,47 +471,14 @@ static BOOL aspect_isCompatibleBlockSignature(NSMethodSignature *blockSignature,
 ///////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark - Class + Selector Preparation
 
-static BOOL aspect_isMsgForwardIMP(IMP impl) {
-    return impl == _objc_msgForward
-#if !defined(__arm64__)
-    || impl == (IMP)_objc_msgForward_stret
-#endif
-    ;
-}
-
-static IMP aspect_getMsgForwardIMP(NSObject *self, SEL selector) {
-    IMP msgForwardIMP = _objc_msgForward;
-#if !defined(__arm64__)
-    // As an ugly internal runtime implementation detail in the 32bit runtime, we need to determine of the method we hook returns a struct or anything larger than id.
-    // https://developer.apple.com/library/mac/documentation/DeveloperTools/Conceptual/LowLevelABI/000-Introduction/introduction.html
-    // https://github.com/ReactiveCocoa/ReactiveCocoa/issues/783
-    // http://infocenter.arm.com/help/topic/com.arm.doc.ihi0042e/IHI0042E_aapcs.pdf (Section 5.4)
-    Method method = class_getInstanceMethod(self.class, selector);
-    const char *encoding = method_getTypeEncoding(method);
-    BOOL methodReturnsStructValue = encoding[0] == _C_STRUCT_B;
-    if (methodReturnsStructValue) {
-        @try {
-            NSUInteger valueSize = 0;
-            NSGetSizeAndAlignment(encoding, &valueSize, NULL);
-
-            if (valueSize == 1 || valueSize == 2 || valueSize == 4 || valueSize == 8) {
-                methodReturnsStructValue = NO;
-            }
-        } @catch (__unused NSException *e) {}
-    }
-    if (methodReturnsStructValue) {
-        msgForwardIMP = (IMP)_objc_msgForward_stret;
-    }
-#endif
-    return msgForwardIMP;
-}
+#define CAST_IMP(mf) (IMP)mf
 
 static void aspect_prepareClassAndHookSelector(NSObject *self, SEL selector, NSError **error) {
     NSCParameterAssert(selector);
     Class klass = aspect_hookClass(self, error);
     Method targetMethod = class_getInstanceMethod(klass, selector);
     IMP targetMethodIMP = method_getImplementation(targetMethod);
-    if (!aspect_isMsgForwardIMP(targetMethodIMP)) {
+    if (targetMethodIMP != aspects_objc_msgHandler) {
         // Make a method alias for the existing method implementation, it not already copied.
         const char *typeEncoding = method_getTypeEncoding(targetMethod);
         SEL aliasSelector = aspect_aliasForSelector(selector);
@@ -280,9 +486,10 @@ static void aspect_prepareClassAndHookSelector(NSObject *self, SEL selector, NSE
             __unused BOOL addedAlias = class_addMethod(klass, aliasSelector, method_getImplementation(targetMethod), typeEncoding);
             NSCAssert(addedAlias, @"Original implementation for %@ is already copied to %@ on %@", NSStringFromSelector(selector), NSStringFromSelector(aliasSelector), klass);
         }
-
+        
         // We use forwardInvocation to hook in.
-        class_replaceMethod(klass, selector, aspect_getMsgForwardIMP(self, selector), typeEncoding);
+        class_replaceMethod(klass, selector, CAST_IMP(aspects_objc_msgHandler), typeEncoding);
+        
         AspectLog(@"Aspects: Installed hook for -[%@ %@].", klass, NSStringFromSelector(selector));
     }
 }
@@ -301,7 +508,7 @@ static void aspect_cleanupHookedClassAndSelector(NSObject *self, SEL selector) {
     // Check if the method is marked as forwarded and undo that.
     Method targetMethod = class_getInstanceMethod(klass, selector);
     IMP targetMethodIMP = method_getImplementation(targetMethod);
-    if (aspect_isMsgForwardIMP(targetMethodIMP)) {
+    if (targetMethodIMP == aspects_objc_msgHandler) {
         // Restore the original method implementation.
         const char *typeEncoding = method_getTypeEncoding(targetMethod);
         SEL aliasSelector = aspect_aliasForSelector(selector);
@@ -333,7 +540,7 @@ static void aspect_cleanupHookedClassAndSelector(NSObject *self, SEL selector) {
             // We can only dispose the class pair if we can ensure that no instances exist using our subclass.
             // Since we don't globally track this, we can't ensure this - but there's also not much overhead in keeping it around.
             //objc_disposeClassPair(object.class);
-        }else {
+        } else {
             // Class is most likely swizzled in place. Undo that.
             if (isMetaClass) {
                 aspect_undoSwizzleClassInPlace((Class)self);
@@ -377,7 +584,6 @@ static Class aspect_hookClass(NSObject *self, NSError **error) {
             return nil;
         }
 
-		aspect_swizzleForwardInvocation(subclass);
 		aspect_hookedGetClass(subclass, statedClass);
 		aspect_hookedGetClass(object_getClass(subclass), statedClass);
 		objc_registerClassPair(subclass);
@@ -385,28 +591,6 @@ static Class aspect_hookClass(NSObject *self, NSError **error) {
 
 	object_setClass(self, subclass);
 	return subclass;
-}
-
-static NSString *const AspectsForwardInvocationSelectorName = @"__aspects_forwardInvocation:";
-static void aspect_swizzleForwardInvocation(Class klass) {
-    NSCParameterAssert(klass);
-    // If there is no method, replace will act like class_addMethod.
-    IMP originalImplementation = class_replaceMethod(klass, @selector(forwardInvocation:), (IMP)__ASPECTS_ARE_BEING_CALLED__, "v@:@");
-    if (originalImplementation) {
-        class_addMethod(klass, NSSelectorFromString(AspectsForwardInvocationSelectorName), originalImplementation, "v@:@");
-    }
-    AspectLog(@"Aspects: %@ is now aspect aware.", NSStringFromClass(klass));
-}
-
-static void aspect_undoSwizzleForwardInvocation(Class klass) {
-    NSCParameterAssert(klass);
-    Method originalMethod = class_getInstanceMethod(klass, NSSelectorFromString(AspectsForwardInvocationSelectorName));
-    Method objectMethod = class_getInstanceMethod(NSObject.class, @selector(forwardInvocation:));
-    // There is no class_removeMethod, so the best we can do is to retore the original implementation, or use a dummy.
-    IMP originalImplementation = method_getImplementation(originalMethod ?: objectMethod);
-    class_replaceMethod(klass, @selector(forwardInvocation:), originalImplementation, "v@:@");
-
-    AspectLog(@"Aspects: %@ has been restored.", NSStringFromClass(klass));
 }
 
 static void aspect_hookedGetClass(Class class, Class statedClass) {
@@ -439,7 +623,6 @@ static Class aspect_swizzleClassInPlace(Class klass) {
 
     _aspect_modifySwizzledClasses(^(NSMutableSet *swizzledClasses) {
         if (![swizzledClasses containsObject:className]) {
-            aspect_swizzleForwardInvocation(klass);
             [swizzledClasses addObject:className];
         }
     });
@@ -452,7 +635,6 @@ static void aspect_undoSwizzleClassInPlace(Class klass) {
 
     _aspect_modifySwizzledClasses(^(NSMutableSet *swizzledClasses) {
         if ([swizzledClasses containsObject:className]) {
-            aspect_undoSwizzleForwardInvocation(klass);
             [swizzledClasses removeObject:className];
         }
     });
@@ -474,7 +656,6 @@ for (AspectIdentifier *aspect in aspects) {\
 static void __ASPECTS_ARE_BEING_CALLED__(__unsafe_unretained NSObject *self, SEL selector, NSInvocation *invocation) {
     NSCParameterAssert(self);
     NSCParameterAssert(invocation);
-    SEL originalSelector = invocation.selector;
 	SEL aliasSelector = aspect_aliasForSelector(invocation.selector);
     invocation.selector = aliasSelector;
     AspectsContainer *objectContainer = objc_getAssociatedObject(self, aliasSelector);
@@ -500,21 +681,10 @@ static void __ASPECTS_ARE_BEING_CALLED__(__unsafe_unretained NSObject *self, SEL
             }
         }while (!respondsToAlias && (klass = class_getSuperclass(klass)));
     }
-
+    
     // After hooks.
     aspect_invoke(classContainer.afterAspects, info);
     aspect_invoke(objectContainer.afterAspects, info);
-
-    // If no hooks are installed, call original implementation (usually to throw an exception)
-    if (!respondsToAlias) {
-        invocation.selector = originalSelector;
-        SEL originalForwardInvocationSEL = NSSelectorFromString(AspectsForwardInvocationSelectorName);
-        if ([self respondsToSelector:originalForwardInvocationSEL]) {
-            ((void( *)(id, SEL, NSInvocation *))objc_msgSend)(self, originalForwardInvocationSEL, invocation);
-        }else {
-            [self doesNotRecognizeSelector:invocation.selector];
-        }
-    }
 
     // Remove any hooks that are queued for deregistration.
     [aspectsToRemove makeObjectsPerformSelector:@selector(remove)];
