@@ -204,8 +204,7 @@ void aspects_objc_msgHandler(void);
 
 __attribute__((naked))
 void aspects_objc_msgHandler() {
-    __asm__(
-            "push   %%rbp \n"
+    __asm__("push   %%rbp \n"
             "mov    %%rsp, %%rbp \n"
             "sub    $0x80+8,  %%rsp \n"
             "movdqa    %%xmm0, -0x80(%%rbp) \n"
@@ -241,6 +240,55 @@ void aspects_objc_msgHandler() {
             "pop    %%rax \n"
             "movdqa    -0x10(%%rbp), %%xmm7 \n"
             "cmp    %%r11, %%r11 \n"
+            "leave \n"
+            "jmp    *%%r11 \n"
+            :
+            :
+            :);
+}
+
+void aspects_objc_msgHandler_stret(void);
+
+__attribute__((naked))
+void aspects_objc_msgHandler_stret() {
+    __asm__("push   %%rbp \n"
+            "mov    %%rsp, %%rbp \n"
+            "sub    $0x80+8,  %%rsp \n"
+            "movdqa    %%xmm0, -0x80(%%rbp) \n"
+            "push    %%rax \n"
+            "movdqa    %%xmm1, -0x70(%%rbp) \n"
+            "push    %%rdi \n"
+            "movdqa    %%xmm2, -0x60(%%rbp) \n"
+            "push    %%rsi \n"
+            "movdqa    %%xmm3, -0x50(%%rbp) \n"
+            "push    %%rdx \n"
+            "movdqa    %%xmm4, -0x40(%%rbp) \n"
+            "push    %%rcx \n"
+            "movdqa    %%xmm5, -0x30(%%rbp) \n"
+            "push    %%r8 \n"
+            "movdqa    %%xmm6, -0x20(%%rbp) \n"
+            "push    %%r9 \n"
+            "movdqa    %%xmm7, -0x10(%%rbp) \n"
+            "movq    %%rsi, %%rdi \n"
+            "movq    %%rdx, %%rsi \n"
+            "call    _aspects_lookupMethod \n"
+            "movq    %%rax, %%r11 \n"
+            "movdqa    -0x80(%%rbp), %%xmm0 \n"
+            "pop    %%r9 \n"
+            "movdqa    -0x70(%%rbp), %%xmm1 \n"
+            "pop    %%r8 \n"
+            "movdqa    -0x60(%%rbp), %%xmm2 \n"
+            "pop    %%rcx \n"
+            "movdqa    -0x50(%%rbp), %%xmm3 \n"
+            "pop    %%rdx \n"
+            "movdqa    -0x40(%%rbp), %%xmm4 \n"
+            "pop    %%rsi \n"
+            "movdqa    -0x30(%%rbp), %%xmm5 \n"
+            "pop    %%rdi \n"
+            "movdqa    -0x20(%%rbp), %%xmm6 \n"
+            "pop    %%rax \n"
+            "movdqa    -0x10(%%rbp), %%xmm7 \n"
+            "test   %%r11, %%r11 \n"
             "leave \n"
             "jmp    *%%r11 \n"
             :
@@ -473,12 +521,16 @@ static BOOL aspect_isCompatibleBlockSignature(NSMethodSignature *blockSignature,
 
 #define CAST_IMP(mf) (IMP)mf
 
+static bool is_aspects_objc_msgHandler(IMP targetMethodIMP) {
+    return (targetMethodIMP == (IMP)aspects_objc_msgHandler || targetMethodIMP == (IMP)aspects_objc_msgHandler_stret);
+}
+
 static void aspect_prepareClassAndHookSelector(NSObject *self, SEL selector, NSError **error) {
     NSCParameterAssert(selector);
     Class klass = aspect_hookClass(self, error);
     Method targetMethod = class_getInstanceMethod(klass, selector);
     IMP targetMethodIMP = method_getImplementation(targetMethod);
-    if (targetMethodIMP != aspects_objc_msgHandler) {
+    if (!is_aspects_objc_msgHandler(targetMethodIMP)) {
         // Make a method alias for the existing method implementation, it not already copied.
         const char *typeEncoding = method_getTypeEncoding(targetMethod);
         SEL aliasSelector = aspect_aliasForSelector(selector);
@@ -488,7 +540,18 @@ static void aspect_prepareClassAndHookSelector(NSObject *self, SEL selector, NSE
         }
         
         // We use forwardInvocation to hook in.
-        class_replaceMethod(klass, selector, CAST_IMP(aspects_objc_msgHandler), typeEncoding);
+        char *returnType = method_copyReturnType(targetMethod);
+        NSString *returnTypeString = [NSString stringWithUTF8String:returnType];
+        free(returnType);
+        
+        // return type is struct or union or array
+        if ([returnTypeString containsString:@"{"] ||
+            [returnTypeString containsString:@"("] ||
+            [returnTypeString containsString:@"["]) {
+            class_replaceMethod(klass, selector, CAST_IMP(aspects_objc_msgHandler_stret), typeEncoding);
+        } else {
+            class_replaceMethod(klass, selector, CAST_IMP(aspects_objc_msgHandler), typeEncoding);
+        }
         
         AspectLog(@"Aspects: Installed hook for -[%@ %@].", klass, NSStringFromSelector(selector));
     }
@@ -508,7 +571,7 @@ static void aspect_cleanupHookedClassAndSelector(NSObject *self, SEL selector) {
     // Check if the method is marked as forwarded and undo that.
     Method targetMethod = class_getInstanceMethod(klass, selector);
     IMP targetMethodIMP = method_getImplementation(targetMethod);
-    if (targetMethodIMP == aspects_objc_msgHandler) {
+    if (is_aspects_objc_msgHandler(targetMethodIMP)) {
         // Restore the original method implementation.
         const char *typeEncoding = method_getTypeEncoding(targetMethod);
         SEL aliasSelector = aspect_aliasForSelector(selector);

@@ -409,7 +409,7 @@
     } error:NULL];
     XCTAssertNotNil(aspectToken, @"Must return a token.");
 
-//    testClass = nil;
+    testClass = nil;
     XCTAssertTrue(testCallCalled, @"Dealloc-hook must work.");
 }
 
