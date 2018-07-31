@@ -474,6 +474,7 @@
     XCTAssertFalse([aspectToken remove], @"Deregistration must not work twice");
 }
 
+/*
 - (void)testGlobalTokenDeregistrationWithCustomForwardInvocation {
     TestWithCustomForwardInvocation *testClass = [TestWithCustomForwardInvocation new];
     Method originalForwardInvocationMethod = class_getInstanceMethod(testClass.class, @selector(forwardInvocation:));
@@ -560,6 +561,7 @@
 
     XCTAssertFalse([token remove], @"Deregistration must not work twice");
 }
+*/
 
 - (void)testSimpleDeregistration {
     TestClass *testClass = [TestClass new];

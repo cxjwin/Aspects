@@ -11,6 +11,8 @@
 #import <objc/message.h>
 #import <UIKit/UIKit.h>
 
+#define AS_CMP(N, M) (strcmp(N, @encode(M)) == 0)
+
 static void __ASPECTS_ARE_BEING_CALLED__(__unsafe_unretained NSObject *self, SEL selector, NSInvocation *invocation);
 
 static inline void set_argument(NSInvocation *inv, va_list a_list, int index) {
@@ -27,40 +29,48 @@ do { \
         argType++;
     }
     
-    if (strcmp(argType, @encode(id)) == 0 || strcmp(argType, @encode(Class)) == 0) {
+    if (AS_CMP(argType, id) || AS_CMP(argType, Class)) {
         WRAP_AND_SET(id, id);
-    } else if (strcmp(argType, @encode(char)) == 0) {
+    } else if (AS_CMP(argType, char)) {
         WRAP_AND_SET(char, int);
-    } else if (strcmp(argType, @encode(int)) == 0) {
+    } else if (AS_CMP(argType, int)) {
         WRAP_AND_SET(int, int);
-    } else if (strcmp(argType, @encode(short)) == 0) {
+    } else if (AS_CMP(argType, short)) {
         WRAP_AND_SET(short, int);
-    } else if (strcmp(argType, @encode(long)) == 0) {
+    } else if (AS_CMP(argType, short)) {
         WRAP_AND_SET(long, long);
-    } else if (strcmp(argType, @encode(long long)) == 0) {
+    } else if (AS_CMP(argType, long long)) {
         WRAP_AND_SET(long long, long long);
-    } else if (strcmp(argType, @encode(unsigned char)) == 0) {
+    } else if (AS_CMP(argType, unsigned char)) {
         WRAP_AND_SET(unsigned char, int);
-    } else if (strcmp(argType, @encode(unsigned int)) == 0) {
+    } else if (AS_CMP(argType, unsigned int)) {
         WRAP_AND_SET(unsigned int, unsigned int);
-    } else if (strcmp(argType, @encode(unsigned short)) == 0) {
+    } else if (AS_CMP(argType, unsigned short)) {
         WRAP_AND_SET(unsigned short, int);
-    } else if (strcmp(argType, @encode(unsigned long)) == 0) {
+    } else if (AS_CMP(argType, unsigned long)) {
         WRAP_AND_SET(unsigned long, unsigned long);
-    } else if (strcmp(argType, @encode(unsigned long long)) == 0) {
+    } else if (AS_CMP(argType, unsigned long long)) {
         WRAP_AND_SET(unsigned long long, unsigned long long);
-    } else if (strcmp(argType, @encode(float)) == 0) {
+    } else if (AS_CMP(argType, float)) {
         WRAP_AND_SET(float, double);
-    } else if (strcmp(argType, @encode(double)) == 0) {
+    } else if (AS_CMP(argType, double)) {
         WRAP_AND_SET(double, double);
-    } else if (strcmp(argType, @encode(BOOL)) == 0) {
+    } else if (AS_CMP(argType, BOOL)) {
         WRAP_AND_SET(BOOL, int);
-    } else if (strcmp(argType, @encode(char *)) == 0) {
-        WRAP_AND_SET(char *, char *);
-    } else if (strcmp(argType, @encode(void (^)(void))) == 0) {
+    } else if (AS_CMP(argType, void *)) {
+        WRAP_AND_SET(void *, void *);
+    } else if (AS_CMP(argType, void (^)(void))) {
         WRAP_AND_SET(id, id);
+    } else if (AS_CMP(argType, CGRect)) {
+        WRAP_AND_SET(CGRect, CGRect);
+    } else if (AS_CMP(argType, CGSize)) {
+        WRAP_AND_SET(CGSize, CGSize);
+    } else if (AS_CMP(argType, CGPoint)) {
+        WRAP_AND_SET(CGPoint, CGPoint);
+    } else if (AS_CMP(argType, NSRange)) {
+        WRAP_AND_SET(NSRange, NSRange);
     } else {
-        WRAP_AND_SET(NSValue *, NSValue *);
+        NSCAssert(NO, @"unsupport arg type");
     }
     
 #undef WRAP_AND_SET
@@ -128,7 +138,6 @@ IMP aspects_lookupMethod(id receiver, SEL sel);
 IMP aspects_lookupMethod(id receiver, SEL sel) {
     
 #define AS_IMP(N) (IMP)aspects_objc_msgHandler##N
-#define AS_CMP(N, M) (strcmp(N, @encode(M)) == 0)
     
     IMP ret = NULL;
     
