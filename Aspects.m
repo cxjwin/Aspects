@@ -96,7 +96,7 @@ static type aspects_objc_msgHandler##suffix (id _self, SEL op, ...) { \
 }
 
 // return void function
-static void aspects_objc_msgHandlerV(id _Nullable _self, SEL op, ...) {
+static void aspects_objc_msgHandlerV(__unsafe_unretained NSObject *_self, SEL op, ...) {
     NSInvocation *inv = nil;
     __MOCK_OBJC_MSG_FORWARD_BODY__;
 }
